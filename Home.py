@@ -244,25 +244,21 @@ with table:
             .chat-content {
                 display: flex;
                 flex-direction: column;
-                height: calc(100vh - 400px);
-                position: relative;
+                height: auto;
+                min-height: 500px;
             }
             .upload-section {
                 padding: 1rem 0;
             }
             .chat-messages {
-                flex: 1;
-                overflow-y: auto;
-                margin-bottom: 60px;  /* Space for input */
+                display: flex;
+                flex-direction: column;
             }
             .stChatFloatingInputContainer {
-                position: fixed !important;
-                bottom: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
+                position: relative !important;
+                margin-top: 1rem !important;
                 background: white !important;
                 padding: 1rem !important;
-                z-index: 999 !important;
                 border-top: 1px solid #e0e0e0 !important;
             }
             [data-testid="stChatInput"] {
@@ -272,9 +268,9 @@ with table:
             .stMarkdown {
                 min-height: 0 !important;
             }
-            div[data-testid="stVerticalBlock"] > div:has(> iframe[title="Chat messages"]) {
-                overflow-y: auto;
-                max-height: calc(100vh - 400px);
+            /* Ensure chat messages stack properly */
+            div[data-testid="stChatMessageContent"] {
+                margin-bottom: 1rem;
             }
             </style>
         """, unsafe_allow_html=True)
