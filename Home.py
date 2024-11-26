@@ -22,6 +22,11 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # TODO: Move this custom css into a different file
 custom_css = """
 <style>
+/* Add this at the beginning of your CSS */
+div.block-container {
+    padding-top: 1rem !important;
+}
+
 .header {
     text-align: left;
     padding: 0;
@@ -93,7 +98,45 @@ span[data-baseweb="tag"] {
 .stDataFrame {
     width: 100%;
 }
+
+/* Chat container styling */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 300px);
+    overflow-y: auto;
+    padding: 1rem;
 }
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.chat-input {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    padding: 1rem 0;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Message styling */
+.chat-message {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.user-message {
+    background-color: #f0f0f0;
+}
+
+.assistant-message {
+    background-color: #f8f9fa;
+}
+</style>
 """
 
 def style_dataframe(df):
@@ -125,15 +168,21 @@ def style_dataframe(df):
 # Apply the custom CSS
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# Header with reduced spacing
+# Header section
 with st.container():
-    st.markdown('<div style="margin-top: -60px;">', unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+        [data-testid="stVerticalBlock"] {
+            padding-top: 0;
+            margin-top: -2rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
     image, title,_,_ = st.columns([1,14,1,1],gap="small")
     with image:
-        st.image("qh-logo.svg", width=100)
+        st.image("qh-logo.svg", width=80)
     with title:
         st.markdown('<div class="header">Muni Document Genie</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Reduced spacing for subheader and footnote
 st.markdown(f"<div class='subheader'>Effortlessly read and interact with municipal bond documents using our advanced question and answering capabilities. Simplify your document analysis and get the insights you need in real-time.</div>", unsafe_allow_html=True)
@@ -190,8 +239,28 @@ with table:
             st.warning("No data available. Please ensure the data is properly loaded.")
     
     with tab2:
-        # Integrate chat functionality
+        st.markdown("""
+            <style>
+            [data-testid="stChatInput"] {
+                position: sticky;
+                bottom: 0;
+                background-color: white;
+                z-index: 100;
+            }
+            .stChatFloatingInputContainer {
+                bottom: 0;
+                background-color: white;
+                padding: 1rem 0;
+                border-top: 1px solid #e0e0e0;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
         chat()
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
 with vertical_divider:
         st.html(
