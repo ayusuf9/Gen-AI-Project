@@ -300,15 +300,31 @@ def style_dataframe(df):
         'text-align': 'left',
         'font-size': '16px',
         'padding': '8px',
-        'border': '1px solid lightgrey'
+        'border': '1px solid lightgrey',
+        'width': '100%',
+        'min-width': '100%'
     }).set_table_styles([
         {'selector': 'th', 'props': [
             ('background-color', '#e0e0e0'),
-            #('font-weight', 'bold'),
-            ('font-size', '15px')
+            ('font-size', '15px'),
+            ('white-space', 'nowrap'),
+            ('min-width', '150px'),
+            ('max-width', '200px')  # Add max-width for headers
         ]},
         {'selector': 'tr:nth-of-type(even)', 'props': [
             ('background-color', '#f9f9f9')
+        ]},
+        {'selector': 'table', 'props': [
+            ('width', '100%'),
+            ('table-layout', 'fixed'),  # Add fixed table layout
+            ('margin-left', '0px'),
+            ('margin-right', '0px')
+        ]},
+        {'selector': 'td', 'props': [  # Add styling for table cells
+            ('max-width', '200px'),
+            ('overflow', 'hidden'),
+            ('text-overflow', 'ellipsis'),
+            ('white-space', 'nowrap')
         ]}
     ])
 

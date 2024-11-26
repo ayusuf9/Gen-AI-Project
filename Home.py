@@ -153,15 +153,23 @@ def style_dataframe(df):
             ('background-color', '#e0e0e0'),
             ('font-size', '15px'),
             ('white-space', 'nowrap'),
-            ('min-width', '150px')
+            ('min-width', '150px'),
+            ('max-width', '200px')
         ]},
         {'selector': 'tr:nth-of-type(even)', 'props': [
             ('background-color', '#f9f9f9')
         ]},
         {'selector': 'table', 'props': [
             ('width', '100%'),
+            ('table-layout', 'fixed'),
             ('margin-left', '0px'),
             ('margin-right', '0px')
+        ]},
+        {'selector': 'td', 'props': [
+            ('max-width', '200px'),
+            ('overflow', 'hidden'),
+            ('text-overflow', 'ellipsis'),
+            ('white-space', 'nowrap')
         ]}
     ])
 
