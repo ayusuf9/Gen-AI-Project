@@ -68,6 +68,19 @@ custom_css = """
 span[data-baseweb="tag"] {
     background-color: rgb(70, 130, 180) !important;
 }
+/* Table styling */
+.table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+.dataframe {
+    width: 100% !important;
+    max-width: none !important;
+}
+.stDataFrame {
+    width: 100%;
+}
 }
 """
 
@@ -77,14 +90,23 @@ def style_dataframe(df):
         'text-align': 'left',
         'font-size': '16px',
         'padding': '8px',
-        'border': '1px solid lightgrey'
+        'border': '1px solid lightgrey',
+        'width': '100%',
+        'min-width': '100%'
     }).set_table_styles([
         {'selector': 'th', 'props': [
             ('background-color', '#e0e0e0'),
-            ('font-size', '15px')
+            ('font-size', '15px'),
+            ('white-space', 'nowrap'),
+            ('min-width', '150px')
         ]},
         {'selector': 'tr:nth-of-type(even)', 'props': [
             ('background-color', '#f9f9f9')
+        ]},
+        {'selector': 'table', 'props': [
+            ('width', '100%'),
+            ('margin-left', '0px'),
+            ('margin-right', '0px')
         ]}
     ])
 
@@ -132,7 +154,9 @@ with table:
             if selected_docs:
                 display_df = st.session_state.results_df[selected_docs]
                 styled_df = style_dataframe(display_df)
+                st.markdown('<div class="table-container">', unsafe_allow_html=True)
                 st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Add download button
                 csv = display_df.to_csv(index=False).encode('utf-8')
