@@ -23,31 +23,43 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 custom_css = """
 <style>
 .header {
-    text-align: left; /* Left-aligned text */
-    padding: 0em; /* Padding around the text */
+    text-align: left;
+    padding: 0;
+    margin: 0;
     padding-bottom: 0.15em;
     font-weight: 600;
     font-size: 3em;
+    line-height: 1.2;
 }
 .subheader {
- padding: 0px;
- border-radius: 0px;
- font-size: 20px;
- font-weight: 100;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    font-size: 20px;
+    font-weight: 100;
+    line-height: 1.4;
 }
 .col-header {
     text-align: left;
-    padding: 0em;
+    padding: 0;
+    margin: 0;
     font-weight: 300;
     font-size: 1.5em;
+    line-height: 1.2;
 }
 .divider {
-    padding: 0px;
+    padding: 0;
+    margin: 10px 0;
 }
 .footnote {
     text-align: left;
-    padding;
+    padding: 0;
+    margin: 5px 0;
     font-size: 0.75em;
+}
+.main-content {
+    padding-top: 0;
+    margin-top: -20px;
 }
 .stTabs [data-baseweb="tab-list"] {
     gap: 24px;
@@ -113,20 +125,25 @@ def style_dataframe(df):
 # Apply the custom CSS
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# Header
+# Header with reduced spacing
 with st.container():
+    st.markdown('<div style="margin-top: -60px;">', unsafe_allow_html=True)
     image, title,_,_ = st.columns([1,14,1,1],gap="small")
     with image:
         st.image("qh-logo.svg", width=100)
     with title:
         st.markdown('<div class="header">Muni Document Genie</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
+# Reduced spacing for subheader and footnote
 st.markdown(f"<div class='subheader'>Effortlessly read and interact with municipal bond documents using our advanced question and answering capabilities. Simplify your document analysis and get the insights you need in real-time.</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='footnote'>For any support on the application please contact <a href='' target='_blank'>QuantHub_Support@capgroup.com</a></div>", unsafe_allow_html=True)
 
-st.markdown(f"______________________________________________________________________________________________________________________________________________________")
+# Shorter divider with less padding
+st.markdown(f"<hr style='margin: 10px 0; padding: 0;'>", unsafe_allow_html=True)
 
-# Content
+# Content with reduced top spacing
+st.markdown('<div class="main-content">', unsafe_allow_html=True)
 table, vertical_divider, chat_col = st.columns([0.70, 0.005, 0.30])
 
 with table:
