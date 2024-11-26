@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from pages.tables import tables, initialize_session_state, style_dataframe
+from pages.tables import initialize_session_state
 from pages.Chat import chat
 
 st.set_page_config(
@@ -65,8 +65,28 @@ custom_css = """
     background-color: rgb(70, 130, 180) !important;
     color: white !important;
 }
+span[data-baseweb="tag"] {
+    background-color: rgb(70, 130, 180) !important;
+}
 }
 """
+
+def style_dataframe(df):
+    """Style the results table"""
+    return df.style.set_properties(**{
+        'text-align': 'left',
+        'font-size': '16px',
+        'padding': '8px',
+        'border': '1px solid lightgrey'
+    }).set_table_styles([
+        {'selector': 'th', 'props': [
+            ('background-color', '#e0e0e0'),
+            ('font-size', '15px')
+        ]},
+        {'selector': 'tr:nth-of-type(even)', 'props': [
+            ('background-color', '#f9f9f9')
+        ]}
+    ])
 
 # Apply the custom CSS
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -99,12 +119,32 @@ with table:
     
     with tab1:
         st.write("Compare PreLoaded Municipal Documents")
+        st.success("Select Documents of your choice to display result")
+        st.warning("The function to add more questions is underway...")
+        
         # Initialize session state and display table
         initialize_session_state()
+        
         if 'results_df' in st.session_state:
-            styled_df = style_dataframe(st.session_state.results_df)
-            st.write(styled_df)
-            st.markdown(f"<div class='footnote'>Note: The ability to add more questions to the list is in progress.</div>", unsafe_allow_html=True)
+            available_docs = st.session_state.results_df.columns.tolist()
+            selected_docs = st.multiselect("Select documents:", available_docs, default=available_docs[:5])
+            
+            if selected_docs:
+                display_df = st.session_state.results_df[selected_docs]
+                styled_df = style_dataframe(display_df)
+                st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
+                
+                # Add download button
+                csv = display_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="Download CSV",
+                    data=csv,
+                    file_name='display_data.csv',
+                    mime='text/csv',
+                    key='download-csv'
+                )
+                
+                st.markdown(f"<div class='footnote'>Note: The ability to add more questions to the list is in progress.</div>", unsafe_allow_html=True)
         else:
             st.warning("No data available. Please ensure the data is properly loaded.")
     
