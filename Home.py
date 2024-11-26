@@ -241,25 +241,54 @@ with table:
     with tab2:
         st.markdown("""
             <style>
-            [data-testid="stChatInput"] {
-                position: sticky;
-                bottom: 0;
-                background-color: white;
-                z-index: 100;
+            .chat-content {
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 400px);
+                position: relative;
+            }
+            .upload-section {
+                padding: 1rem 0;
+            }
+            .chat-messages {
+                flex: 1;
+                overflow-y: auto;
+                margin-bottom: 60px;  /* Space for input */
             }
             .stChatFloatingInputContainer {
-                bottom: 0;
-                background-color: white;
-                padding: 1rem 0;
-                border-top: 1px solid #e0e0e0;
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                background: white !important;
+                padding: 1rem !important;
+                z-index: 999 !important;
+                border-top: 1px solid #e0e0e0 !important;
+            }
+            [data-testid="stChatInput"] {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            .stMarkdown {
+                min-height: 0 !important;
+            }
+            div[data-testid="stVerticalBlock"] > div:has(> iframe[title="Chat messages"]) {
+                overflow-y: auto;
+                max-height: calc(100vh - 400px);
             }
             </style>
         """, unsafe_allow_html=True)
         
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chat-content">', unsafe_allow_html=True)
+        
+        # Upload section at the top
+        st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+        
+        # Chat messages container
         st.markdown('<div class="chat-messages">', unsafe_allow_html=True)
         chat()
         st.markdown('</div>', unsafe_allow_html=True)
+        
         st.markdown('</div>', unsafe_allow_html=True)
     
 with vertical_divider:
