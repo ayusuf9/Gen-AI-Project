@@ -12,15 +12,11 @@ def main():
             .header-container {
                 display: flex;
                 align-items: center;
-                gap: 1rem;
-                max-width: 1200px;
-                margin: 0 auto;
-            }
-            .logo-image {
-                flex: 0 0 80px;
+                padding: 0;
+                margin: 0;
             }
             .header-title {
-                flex: 1;
+                margin-left: 1rem;
             }
             .header {
                 text-align: left;
@@ -31,23 +27,26 @@ def main():
                 font-size: 3em;
                 line-height: 1.2;
             }
+            [data-testid="column"] {
+                padding: 0 !important;
+            }
             </style>
         """, unsafe_allow_html=True)
 
         tabs1, tabs2 = st.columns(2)
         
         with tabs1:
-            # Use a single HTML structure for the header
-            st.markdown("""
-                <div class="header-container">
-                    <div class="logo-image">
-                        <img src="qh-logo.svg" width="80">
-                    </div>
-                    <div class="header-title">
-                        <div class="header">Muni Document Genie</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
+            # Create a container for the header row
+            header_container = st.container()
+            
+            # Use columns with minimal width ratio for logo
+            logo_col, title_col = header_container.columns([1, 20])
+            
+            with logo_col:
+                st.image("qh-logo.svg", width=80)
+            
+            with title_col:
+                st.markdown('<div class="header">Muni Document Genie</div>', unsafe_allow_html=True)
             
         with tabs2:
             st.markdown(f"""<div class='footnote'>
