@@ -1,110 +1,181 @@
 import os
-import glob
-import time
-from pathlib import Path
-import streamlit as st
-from typing import Optional, Dict
-from langchain.document_loaders import PyPDFLoader
-from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
-from quanthub.util import llm2
+from typing import Optional, List, Tuple
+import pandas as pd
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
+import re
+import camelot
+import warnings
+warnings.filterwarnings('ignore')
 
-class PDFProcessor:
-    def __init__(self):
-        """Initialize the PDF processor."""
-        self.embeddings = self._get_embedding_model()
-        self.vector_stores: Dict[str, FAISS] = {}
+class PDFTableExtractor:
+    def __init__(self, api_key: str):
+        """
+        Initialize the PDFTableExtractor with OpenAI API key.
         
-    def _get_embedding_model(self) -> OpenAIEmbeddings:
-        """Create and return an OpenAI embeddings model instance."""
-        openai_api_client = llm2.get_llm_client()
-        return OpenAIEmbeddings(
-            deployment="text-embedding-3-large",
-            model="text-embedding-3-large",
-            openai_api_key=openai_api_client.api_key,
-            openai_api_base=openai_api_client.api_base,
-            openai_api_type=openai_api_client.api_type,
-            chunk_size=100
+        Args:
+            api_key (str): OpenAI API key for embeddings and chat completion
+        """
+        self.api_key = api_key
+        os.environ['OPENAI_API_KEY'] = api_key
+        self.embeddings = OpenAIEmbeddings()
+        self.llm = ChatOpenAI(temperature=0)
+        
+    def create_vector_db(self, pdf_path: str) -> FAISS:
+        """
+        Create a vector database from the PDF content for semantic search.
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            
+        Returns:
+            FAISS: Vector store containing document embeddings
+        """
+        # Load PDF
+        loader = PyPDFLoader(pdf_path)
+        pages = loader.load()
+        
+        # Split text into chunks
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=100
         )
-    
-    def _get_index_directory(self, pdf_path: str) -> Path:
-        """Generate the index directory path for a PDF."""
-        filename = Path(pdf_path).stem
-        index_dir = Path(f"{filename}_index")
-        return index_dir
-    
-    def process_pdf(self, pdf_path: str, force_rebuild: bool = False) -> Optional[FAISS]:
-        """Process a single PDF file and create or load its vector store."""
-        if not os.path.exists(pdf_path):
-            st.error(f"PDF file not found: {pdf_path}")
-            return None
-            
-        index_dir = self._get_index_directory(pdf_path)
-        filename = Path(pdf_path).stem
+        splits = text_splitter.split_documents(pages)
         
-        try:
-            # Load existing index if available and not forcing rebuild
-            if not force_rebuild and index_dir.exists():
-                vector_store = FAISS.load_local(str(index_dir), embeddings=self.embeddings)
-                st.success(f"Loaded existing index for '{filename}'")
-                self.vector_stores[pdf_path] = vector_store
-                return vector_store
-            
-            # Process the PDF
-            with st.spinner(f"Processing '{filename}'..."):
-                # Load PDF pages
-                loader = PyPDFLoader(pdf_path)
-                pages = loader.load()  # This loads the PDF page by page
-                
-                # Create and save the vector store using full pages
-                vector_store = FAISS.from_documents(pages, self.embeddings)
-                index_dir.mkdir(parents=True, exist_ok=True)
-                vector_store.save_local(str(index_dir))
-                
-                self.vector_stores[pdf_path] = vector_store
-                st.success(f"Successfully processed '{filename}' and saved index to {index_dir}")
-                return vector_store
-                
-        except Exception as e:
-            st.error(f"Error processing '{filename}': {str(e)}")
-            return None
+        # Create vector store
+        vector_store = FAISS.from_documents(splits, self.embeddings)
+        return vector_store
     
-    def process_directory(self, directory_path: str, force_rebuild: bool = False):
-        """Process all PDFs in a directory."""
-        pdf_paths = glob.glob(os.path.join(directory_path, '*.pdf'))
-        if not pdf_paths:
-            st.warning("No PDF files found in the specified directory.")
-            return
+    def find_table_page(self, vector_store: FAISS, table_description: str) -> int:
+        """
+        Find the most likely page containing the desired table.
         
-        total_pdfs = len(pdf_paths)
-        st.info(f"Found {total_pdfs} PDF(s) in the directory.")
-        progress_bar = st.progress(0)
-        
-        for idx, pdf_path in enumerate(pdf_paths, 1):
-            self.process_pdf(pdf_path, force_rebuild)
-            progress = idx / total_pdfs
-            progress_bar.progress(progress)
-            time.sleep(0.1)  # Small delay for UI responsiveness
+        Args:
+            vector_store (FAISS): Vector store containing document embeddings
+            table_description (str): Description of the table to find
             
-        st.success("Finished processing all PDFs.")
+        Returns:
+            int: Most likely page number containing the table
+        """
+        # Search for relevant content
+        docs = vector_store.similarity_search(
+            f"Find a table that contains {table_description}",
+            k=3
+        )
+        
+        # Extract page numbers from metadata
+        page_numbers = [doc.metadata['page'] + 1 for doc in docs]
+        
+        # Return most frequent page number
+        return max(set(page_numbers), key=page_numbers.count)
     
-    def get_vector_store(self, pdf_path: str) -> Optional[FAISS]:
-        """Retrieve the vector store for a specific PDF."""
-        return self.vector_stores.get(pdf_path)
+    def extract_table(self, pdf_path: str, page_number: int) -> List[pd.DataFrame]:
+        """
+        Extract tables from the specified page using camelot.
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            page_number (int): Page number to extract tables from
+            
+        Returns:
+            List[pd.DataFrame]: List of extracted tables as pandas DataFrames
+        """
+        # Extract tables using both lattice and stream methods
+        tables_lattice = camelot.read_pdf(
+            pdf_path,
+            pages=str(page_number),
+            flavor='lattice'
+        )
+        
+        tables_stream = camelot.read_pdf(
+            pdf_path,
+            pages=str(page_number),
+            flavor='stream'
+        )
+        
+        # Convert to pandas DataFrames
+        dfs_lattice = [table.df for table in tables_lattice]
+        dfs_stream = [table.df for table in tables_stream]
+        
+        # Combine results
+        all_tables = dfs_lattice + dfs_stream
+        return all_tables
+    
+    def clean_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Clean and format the extracted DataFrame.
+        
+        Args:
+            df (pd.DataFrame): Raw extracted DataFrame
+            
+        Returns:
+            pd.DataFrame: Cleaned DataFrame
+        """
+        # Remove empty rows and columns
+        df = df.dropna(how='all').dropna(axis=1, how='all')
+        
+        # Clean whitespace
+        df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+        
+        # Set first row as header if it contains string values
+        if df.iloc[0].apply(lambda x: isinstance(x, str)).all():
+            df.columns = df.iloc[0]
+            df = df.iloc[1:]
+            
+        return df
+    
+    def extract_and_process_table(
+        self,
+        pdf_path: str,
+        table_description: str
+    ) -> Tuple[pd.DataFrame, int]:
+        """
+        Main method to extract and process a table from a PDF.
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            table_description (str): Description of the table to find
+            
+        Returns:
+            Tuple[pd.DataFrame, int]: Cleaned DataFrame and page number where table was found
+        """
+        # Create vector store
+        vector_store = self.create_vector_db(pdf_path)
+        
+        # Find table page
+        page_number = self.find_table_page(vector_store, table_description)
+        
+        # Extract tables
+        tables = self.extract_table(pdf_path, page_number)
+        
+        if not tables:
+            raise ValueError(f"No tables found on page {page_number}")
+        
+        # Select largest table if multiple found
+        largest_table = max(tables, key=lambda df: df.size)
+        
+        # Clean and return table
+        cleaned_table = self.clean_dataframe(largest_table)
+        return cleaned_table, page_number
 
-# Usage example
-def main():
-    st.title("PDF Processing System")
-    
-    # Initialize processor
-    processor = PDFProcessor()
-    
-    # UI for directory input
-    directory_path = st.text_input("Enter PDF directory path:")
-    force_rebuild = st.checkbox("Force rebuild indexes")
-    
-    if st.button("Process PDFs") and directory_path:
-        processor.process_directory(directory_path, force_rebuild)
-
+# Example usage
 if __name__ == "__main__":
-    main()
+    # Initialize extractor
+    api_key = "your-openai-api-key"
+    extractor = PDFTableExtractor(api_key)
+    
+    # Extract table
+    pdf_path = "path/to/your/pdf"
+    table_description = "financial statements showing revenue and expenses"
+    
+    try:
+        df, page = extractor.extract_and_process_table(pdf_path, table_description)
+        print(f"Table found on page {page}")
+        print("\nExtracted Table:")
+        print(df)
+    except Exception as e:
+        print(f"Error: {str(e)}")
